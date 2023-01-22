@@ -2,15 +2,16 @@ const urlModel = require("../models/urlModel")
 const shortId = require('shortid')
 const validator = require('valid-url')
 const redis = require("redis")
+const axios=require('axios')
 const { promisify } = require('util')
 const baseUrl = "http://localhost:3000/"
 
 // <----------------------------Redis connection----------------------------------->
 
-const redisConnect = redis.createClient(18533, "redis-18533.c246.us-east-1-4.ec2.cloud.redislabs.com",
+const redisConnect = redis.createClient(11459, "redis-11459.c264.ap-south-1-1.ec2.cloud.redislabs.com",
            {no_ready_check:true})
 
-redisConnect.auth("iZQWDNX2npnjZ7DN3Ez23wi1iZ7y2vXj", function (err) {
+redisConnect.auth("d76HQLdFXVsQbZ6VlCk4pKudXP04qPyr", function (err) {
     if (err) throw err
 })
 
@@ -27,7 +28,7 @@ const SET_ASYNC = promisify(redisConnect.SET).bind(redisConnect)
 const shortUrl = async function (req, res) {
     try {
         const data = req.body;
-        let longUrl = data.longUrl;
+        let longUrl = data.longUrl.trim();
         if (Object.keys(data).length == 0) {
             return res.status(400).send({ status: false, message: "Please Enter Longurl to create shorturl" })
         }
@@ -39,6 +40,8 @@ const shortUrl = async function (req, res) {
         if (!validator.isWebUri(longUrl)) {
             return res.status(400).send({ status: false, message: "Not a valid url" })
         }
+        await axios.get(longUrl).then(() => { isValid = true }).catch(() => { isValid = false });
+        if (isValid == false) return res.status(400).send({ status: false, message: "Please provide valid url" });
         let cachedLongUrl = await GET_ASYNC(`${longUrl}`)
         let Link = JSON.parse(cachedLongUrl)
         if (Link) {
